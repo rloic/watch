@@ -7,9 +7,17 @@ use regex::Regex;
 
 fn main() -> std::io::Result<()> {
     let args: Args = Args::parse();
-    let Args { script, paths, ignores } = args;
+    let Args { script, paths, ignores, run_at_startup } = args;
     let path_checker = PathChecker::new(ignores);
     let mut old_last_update = get_last_update(&paths, &path_checker);
+
+    if run_at_startup {
+        Command::new("bash")
+            .args(vec!["-c", script.to_str().unwrap()])
+            .spawn()?
+            .wait()?;
+    }
+
     loop {
         let current_last_update = get_last_update(&paths, &path_checker);
 
@@ -86,7 +94,9 @@ struct Args {
     script: PathBuf,
     paths: Vec<PathBuf>,
     #[clap(short, long)]
-    ignores: Vec<String>
+    ignores: Vec<String>,
+    #[clap(short, long)]
+    run_at_startup: bool,
 }
 
 fn walk<V: FnMut(&PathBuf) -> ()>(path: &PathBuf, visitor: &mut V) {
